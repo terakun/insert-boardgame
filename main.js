@@ -6,22 +6,50 @@ function getRandomInt(max) {
   return Math.floor(Math.random() * max);
 }
 
-class Board {
-    constructor() {
-        this.board = new Array(BH);
-        this.vectorboard = new Array(BH);
+function getOpponent(piece) {
+    return (piece === 'R') ? 'W' : 'R';
+}
 
-        this.current_dir = ' ';
-        this.current_pos = [-1,-1];
+function posToIdx(pos) {
+    return pos[0]*BW + pos[1];
+}
+
+function idxToPos(idx) {
+    let r = Math.floor(idx / BW);
+    let c = idx % BW;
+    return [r, c];
+}
+
+function checkValidPos(pos) {
+    return 0 <= pos[0] && pos[0] < BH && 0 <= pos[1] && pos[1] < BW;
+}
+
+class Board {
+    initBoard() {
+        this.currentDir = ' ';
+        this.currentPos = [-1,-1];
         for (let i = 0; i < BH; ++i) {
-            this.board[i] = new Array(BW);
-            this.vectorboard[i] = new Array(BW);
             for (let j = 0; j < BW; ++j) {
-                this.board[i][j] = ' ';
-                this.vectorboard[i][j] = dirs[getRandomInt(dirs.length)]
+                this.pieceBoard[i][j] = ' ';
+                if(!this.debug) {
+                    this.vectorBoard[i][j] = dirs[getRandomInt(dirs.length)];
+                } else {
+                    this.vectorBoard[i][j] = '*';
+                }
             }
         }
-        console.log('constructor')
+    }
+
+    constructor(debug = false) {
+        this.pieceBoard = new Array(BH);
+        this.vectorBoard = new Array(BH);
+        for (let i = 0; i < BH; ++i) {
+            this.pieceBoard[i] = new Array(BW);
+            this.vectorBoard[i] = new Array(BW);
+        }
+        this.debus = debug;
+        this.initBoard();
+        console.log('constructor');
     }
 
     judge() {
@@ -40,7 +68,7 @@ class Board {
         for (let i = 0; i < BH; ++i) {
             let cnt = 0;
             for (let j = 0; j < BW; ++j) {
-                cnt = updateCnt(cnt, this.board[i][j]);
+                cnt = updateCnt(cnt, this.pieceBoard[i][j]);
                 if (cnt >= WIN_NUM) {
                     return 'R';
                 } else if (cnt <= -WIN_NUM) {
@@ -53,7 +81,7 @@ class Board {
         for (let j = 0; j < BW; ++j) {
             let cnt = 0;
             for (let i = 0; i < BH; ++i) {
-                cnt = updateCnt(cnt, this.board[i][j]);
+                cnt = updateCnt(cnt, this.pieceBoard[i][j]);
                 if (cnt >= WIN_NUM) {
                     return 'R';
                 } else if (cnt <= -WIN_NUM) {
@@ -66,7 +94,7 @@ class Board {
         for (let di = -1; di <= 1; ++di) {
             let cnt = 0;
             for (let dj = 0; dj < BH - Math.abs(di); ++dj) {
-                cnt = updateCnt(cnt, this.board[dj + Math.max(di, 0)][dj + Math.max(-di, 0)]);
+                cnt = updateCnt(cnt, this.pieceBoard[dj + Math.max(di, 0)][dj + Math.max(-di, 0)]);
                 if (cnt >= WIN_NUM) {
                     return 'R';
                 } else if (cnt <= -WIN_NUM) {
@@ -79,7 +107,7 @@ class Board {
         for (let di = -1; di <= 1; ++di) {
             let cnt = 0;
             for (let dj = 0; dj < BH - Math.abs(di); ++dj) {
-                cnt = updateCnt(cnt, this.board[BH - 1 - (dj + Math.max(di, 0))][dj + Math.max(-di, 0)]);
+                cnt = updateCnt(cnt, this.pieceBoard[BH - 1 - (dj + Math.max(di, 0))][dj + Math.max(-di, 0)]);
                 if (cnt >= WIN_NUM) {
                     return 'R';
                 } else if (cnt <= -WIN_NUM) {
@@ -92,27 +120,27 @@ class Board {
 
     getValidMoves() {
         let validmoves = [];
-        switch(this.current_dir){
+        switch(this.currentDir){
             case 'H': {
-                let i = this.current_pos[0];
+                let i = this.currentPos[0];
                 for (let j = 0; j < BW; ++j) {
-                    if (this.board[i][j] === ' ') {
+                    if (this.pieceBoard[i][j] === ' ') {
                         validmoves.push([i, j]);
                     }
                 }
                 break;
             }
             case 'V': {
-                let j = this.current_pos[1];
+                let j = this.currentPos[1];
                 for (let i = 0; i < BH; ++i) {
-                    if (this.board[i][j] === ' ') {
+                    if (this.pieceBoard[i][j] === ' ') {
                         validmoves.push([i, j]);
                     }
                 }
                 break;
             }
             case 'UR': {
-                let i = this.current_pos[0], j = this.current_pos[1];
+                let i = this.currentPos[0], j = this.currentPos[1];
                 let si = 0, sj = 0;
                 if (BH-1-i < j) {
                     sj = j-(BH-1-i);
@@ -121,14 +149,14 @@ class Board {
                 }
                 let BD = BH - Math.max(si, sj);
                 for (let di = 0; di < BD; ++di) {
-                    if (this.board[BH - 1 - (di + si)][di + sj] === ' ') {
+                    if (this.pieceBoard[BH - 1 - (di + si)][di + sj] === ' ') {
                         validmoves.push([BH - 1 - (di + si), di + sj]);
                     }
                 }
                 break;
             }
             case 'UL': {
-                let i = this.current_pos[0], j = this.current_pos[1];
+                let i = this.currentPos[0], j = this.currentPos[1];
                 let si = 0, sj = 0;
                 if (i < j) {
                     sj = j - i;
@@ -137,7 +165,7 @@ class Board {
                 }
                 let BD = BH - Math.max(si, sj);
                 for (let di = 0; di < BD; ++di) {
-                    if (this.board[di + si][di + sj] === ' ') {
+                    if (this.pieceBoard[di + si][di + sj] === ' ') {
                         validmoves.push([di + si, di + sj]);
                     }
                 }
@@ -150,139 +178,212 @@ class Board {
         if(validmoves.length == 0) {
             for(let i=0;i<BW;++i) {
                 for(let j=0;j<BH;++j) { 
-                    if(this.board[i][j] == ' ') {
+                    if(this.pieceBoard[i][j] == ' ') {
                         validmoves.push([i,j]);
                     }
                 }
             }
         }
-        return validmoves;
+        return validmoves.map(pos => posToIdx(pos));
+    }
+
+    getPiece(pos) {
+        return this.pieceBoard[pos[0]][pos[1]];
+    }
+
+    setPiece(pos, piece) {
+        this.pieceBoard[pos[0]][pos[1]] = piece;
     }
 
     step(r, c, piece) {
-        this.board[r][c] = piece;
-        this.current_dir = this.vectorboard[r][c];
-        this.current_pos = [r,c];
+        this.setPiece([r,c], piece);
+        this.currentDir = this.vectorBoard[r][c];
+        this.currentPos = [r,c];
+
+        // Insert process
+        let pos_dirs = [[1, 0], [0, 1], [1, 1], [1, -1]];
+        for(let dir of pos_dirs) {
+            let p1 = [r+dir[0], c+dir[1]];
+            let p2 = [r-dir[0], c-dir[1]];
+            while(checkValidPos(p1) && this.getPiece(p1) === piece) {
+                p1 = [p1[0]+dir[0], p1[1]+dir[1]];
+            }
+            console.log("p1 "+p1);
+            if(!checkValidPos(p1) || this.getPiece(p1) === ' ') {
+                continue;
+            }
+            while(checkValidPos(p2) && this.getPiece(p2) === piece) {
+                p2 = [p2[0]-dir[0], p2[1]-dir[1]];
+            }
+            console.log("p2 "+p2);
+            if(!checkValidPos(p2) || this.getPiece(p2) === ' ') {
+                continue;
+            }
+            this.setPiece(p1, piece);
+            this.setPiece(p2, piece);
+        }
     }
 
 }
 
 class AI {
     constructor(depth) {
-        this.piece = 'R';
+        this.piece = 'W';
+        this.depth = depth;
     }
 
-    step(board) {
-
+    search(board, piece) {
+        let validindices = board.getValidMoves();
+        return validindices[getRandomInt(validindices.length)];
     }
 }
 
-class Game {
-    constructor() {
 
-    }
+let gameBoard = new Board();
+let gameAI = new AI(1);
+const divContainer = document.getElementsByClassName("game--container")[0];
 
-    init() {
-
-    }
-
-}
-
-let board = new Board();
-let game = new Game();
-
-game.init();
-const div_container = document.getElementsByClassName("game--container")[0];
-const div_cells = document.getElementsByClassName('cell');
 for (let i = 0; i < BH; i++) {
     for (let j = 0; j < BW; j++) {
         const div = document.createElement("div");
         div.setAttribute('data-cell-index', i * BW + j);
-        div.setAttribute('dir', board.vectorboard[i][j]);
-        div.innerHTML = board.vectorboard[i][j];
         div.classList.add('cell');
-        div_container.appendChild(div);
+        divContainer.appendChild(div);
     }
 }
 
+const divCells = document.getElementsByClassName('cell');
 const statusDisplay = document.querySelector('.game--status');
 
 let gameActive = true;
 let currentPlayer = "R";
+let userPiece = ' ';
+let aiPiece = ' ';
 let currentDir = ' ';
 
-const winningMessage = () => `Player ${currentPlayer} has won!`;
-const drawMessage = () => `Game ended in a draw!`;
-const currentPlayerTurn = () => `It's ${currentPlayer}'s turn`;
+const winningMessage = () => {
+    if(userPiece === currentPlayer) {
+        return "あなたの勝ちです！";
+    } else {
+        return "AIの勝ちです！";
+    }
+};
+
+const drawMessage = () => "引き分け";
+const currentPlayerTurn = () => {
+    if(userPiece === currentPlayer) {
+        return "あなたのターンです";
+    } else {
+        return "AIのターンです";
+    }
+};
 
 statusDisplay.innerHTML = currentPlayerTurn();
 
-function handleCellPlayed(clickedCell, clickedCellIndex) {
-    clickedCell.innerHTML = currentPlayer;
-    let r = Math.floor(clickedCellIndex / BW);
-    let c = clickedCellIndex % BW;
-    board.step(r, c, currentPlayer);
-    let validmoves = board.getValidMoves();
-
-    console.log(validmoves);
-
+function updateWindow() {
+    let validindices = gameBoard.getValidMoves();
     for(let idx=0;idx<BH*BW;++idx) {
-        div_cells[idx].style.backgroundColor = 'white';
+        let piece = gameBoard.getPiece(idxToPos(idx));
+        if(piece !== ' ') {
+            divCells[idx].innerHTML = piece;
+        }
+        divCells[idx].style.backgroundColor = 'white';
     }
-    for(const validmove of validmoves) {
-        console.log(validmove);
-        let idx = validmove[0]*BW+validmove[1];
-        console.log(idx);
-        div_cells[idx].style.backgroundColor = 'red';
+    for(const validindex of validindices) {
+        divCells[validindex].style.backgroundColor = 'red';
     }
+}
+
+function handleCellPlayed(clickedCellIndex) {
+    let validindices = gameBoard.getValidMoves();
+    if(!validindices.includes(clickedCellIndex)) {
+        return false;
+    }
+    let pos = idxToPos(clickedCellIndex);
+    gameBoard.step(pos[0], pos[1], currentPlayer);
+
+    updateWindow();
+    return true;
 }
 
 function handlePlayerChange() {
-    currentPlayer = currentPlayer === "R" ? "W" : "R";
+    currentPlayer = getOpponent(currentPlayer);
     statusDisplay.innerHTML = currentPlayerTurn();
 }
 
-function handleResultValidation() {
-    console.log("judge:" + board.judge());
-    let judge = board.judge();
-    let roundWon = judge !== ' ';
+function handleJudge() {
+    let judgeResult = gameBoard.judge();
+    let roundWon = judgeResult !== ' ';
 
     if (roundWon) {
         statusDisplay.innerHTML = winningMessage();
         gameActive = false;
-        return;
+        return true;
     }
 
     let roundDraw = false;
     if (roundDraw) {
         statusDisplay.innerHTML = drawMessage();
         gameActive = false;
-        return;
+        return true;
     }
 
     handlePlayerChange();
+    return false;
 }
 
-function handleCellClick(clickedCellEvent) {
-    const clickedCell = clickedCellEvent.target;
-    const clickedCellIndex = parseInt(clickedCell.getAttribute('data-cell-index'));
+function handleAI() {
+    let index = gameAI.search(gameBoard, currentPlayer);
+    gameBoard.setPiece(idxToPos(index), currentPlayer);
+    updateWindow();
+}
 
-    if (!gameActive) {
+function clickCell(clickedCellEvent) {
+    if (!gameActive || currentPlayer !== userPiece) {
         return;
     }
 
-    handleCellPlayed(clickedCell, clickedCellIndex);
-    handleResultValidation();
+    const clickedCell = clickedCellEvent.target;
+    const clickedCellIndex = parseInt(clickedCell.getAttribute('data-cell-index'));
+
+    if(!handleCellPlayed(clickedCellIndex)){
+        return;
+    }
+    if(handleJudge()) {
+        return;
+    }
+
+    handleAI();
+    handleJudge();
 }
 
-function handleRestartGame() {
+function startGame() {
     gameActive = true;
-    currentPlayer = "X";
-    gameState = ["", "", "", "", "", "", "", "", ""];
-    statusDisplay.innerHTML = currentPlayerTurn();
     document.querySelectorAll('.cell').forEach(cell => cell.innerHTML = "");
+    gameBoard.initBoard();
+
+    for (let i = 0; i < BH; i++) {
+        for (let j = 0; j < BW; j++) {
+            let index = posToIdx([i,j]);
+            divCells[index].setAttribute('dir', gameBoard.vectorBoard[i][j]);
+            divCells[index].innerHTML = gameBoard.vectorBoard[i][j];
+        }
+    }
+
+    currentPlayer = "R";
+    statusDisplay.innerHTML = currentPlayerTurn();
+    updateWindow();
+
+    if(document.form.turn[1].checked) {
+        userPiece = 'W';
+        aiPiece = 'R';
+        handleAI();
+    } else {
+        userPiece = 'R';
+        aiPiece = 'W';
+    }
 }
 
-document.querySelectorAll('.cell').forEach(cell => cell.addEventListener('click', handleCellClick));
-document.querySelector('.game--restart').addEventListener('click', handleRestartGame);
-
+document.querySelectorAll('.cell').forEach(cell => cell.addEventListener('click', clickCell));
+document.querySelector('.game--start').addEventLi
+userPiece = 'R';;
