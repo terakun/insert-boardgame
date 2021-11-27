@@ -195,7 +195,8 @@ class Board {
         this.pieceBoard[pos[0]][pos[1]] = piece;
     }
 
-    step(r, c, piece) {
+    step(pos, piece) {
+        let r = pos[0], c = pos[1];
         this.setPiece([r,c], piece);
         this.currentDir = this.vectorBoard[r][c];
         this.currentPos = [r,c];
@@ -278,8 +279,6 @@ const currentPlayerTurn = () => {
     }
 };
 
-statusDisplay.innerHTML = currentPlayerTurn();
-
 function updateWindow() {
     let validindices = gameBoard.getValidMoves();
     for(let idx=0;idx<BH*BW;++idx) {
@@ -300,8 +299,7 @@ function handleCellPlayed(clickedCellIndex) {
         return false;
     }
     let pos = idxToPos(clickedCellIndex);
-    gameBoard.step(pos[0], pos[1], currentPlayer);
-
+    gameBoard.step(pos, currentPlayer);
     updateWindow();
     return true;
 }
@@ -332,10 +330,14 @@ function handleJudge() {
     return false;
 }
 
-function handleAI() {
+async function handleAI() {
     let index = gameAI.search(gameBoard, currentPlayer);
-    gameBoard.setPiece(idxToPos(index), currentPlayer);
+    const _sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    await _sleep(1000);
+
+    gameBoard.step(idxToPos(index), currentPlayer);
     updateWindow();
+    handleJudge();
 }
 
 function clickCell(clickedCellEvent) {
@@ -354,7 +356,6 @@ function clickCell(clickedCellEvent) {
     }
 
     handleAI();
-    handleJudge();
 }
 
 function startGame() {
@@ -371,7 +372,6 @@ function startGame() {
     }
 
     currentPlayer = "R";
-    statusDisplay.innerHTML = currentPlayerTurn();
     updateWindow();
 
     if(document.form.turn[1].checked) {
@@ -382,8 +382,8 @@ function startGame() {
         userPiece = 'R';
         aiPiece = 'W';
     }
+    statusDisplay.innerHTML = currentPlayerTurn();
 }
 
 document.querySelectorAll('.cell').forEach(cell => cell.addEventListener('click', clickCell));
-document.querySelector('.game--start').addEventLi
-userPiece = 'R';;
+document.querySelector('.game--start').addEventListener('click', startGame);
