@@ -1,5 +1,4 @@
-const BW = 6;
-const BH = 6;
+const BW = 6, BH = 6;
 const dirs = ['H', 'V', 'UR', 'UL'];
 
 function getRandomInt(max) {
@@ -43,13 +42,13 @@ class Board {
     constructor(debug = false) {
         this.pieceBoard = new Array(BH);
         this.vectorBoard = new Array(BH);
+        this.pieceHistory = [];
         for (let i = 0; i < BH; ++i) {
             this.pieceBoard[i] = new Array(BW);
             this.vectorBoard[i] = new Array(BW);
         }
         this.debus = debug;
         this.initBoard();
-        console.log('constructor');
     }
 
     judge() {
@@ -120,71 +119,43 @@ class Board {
 
     getValidMoves() {
         let validmoves = [];
-        switch(this.currentDir){
-            case 0: {
-                let i = this.currentPos[0];
-                for (let j = 0; j < BW; ++j) {
-                    if (this.pieceBoard[i][j] === ' ') {
-                        validmoves.push([i, j]);
-                    }
-                }
-                break;
-            }
-            case 1: {
-                let j = this.currentPos[1];
-                for (let i = 0; i < BH; ++i) {
-                    if (this.pieceBoard[i][j] === ' ') {
-                        validmoves.push([i, j]);
-                    }
-                }
-                break;
-            }
-            case 2: {
-                let i = this.currentPos[0], j = this.currentPos[1];
-                let si = 0, sj = 0;
-                if (BH-1-i < j) {
-                    sj = j-(BH-1-i);
-                } else {
-                    si = (BH-1-i)-j;
-                }
-                let BD = BH - Math.max(si, sj);
-                for (let di = 0; di < BD; ++di) {
-                    if (this.pieceBoard[BH - 1 - (di + si)][di + sj] === ' ') {
-                        validmoves.push([BH - 1 - (di + si), di + sj]);
-                    }
-                }
-                break;
-            }
-            case 3: {
-                let i = this.currentPos[0], j = this.currentPos[1];
-                let si = 0, sj = 0;
-                if (i < j) {
-                    sj = j - i;
-                } else {
-                    si = i - j;
-                }
-                let BD = BH - Math.max(si, sj);
-                for (let di = 0; di < BD; ++di) {
-                    if (this.pieceBoard[di + si][di + sj] === ' ') {
-                        validmoves.push([di + si, di + sj]);
-                    }
-                }
-                break;
-            }
-            default:
-                break;
-        }
 
-        if(validmoves.length == 0) {
-            for(let i=0;i<BW;++i) {
-                for(let j=0;j<BH;++j) { 
-                    if(this.pieceBoard[i][j] == ' ') {
-                        validmoves.push([i,j]);
-                    }
+        for (let i = 0; i < BH; ++i) {
+            for (let j = 0; j < BW; ++j) {
+                let valid = false;
+                switch(this.currentDir) {
+                    case 0: // Horizontal
+                        valid = (i===this.currentPos[0]);
+                        break;
+                    case 1: // Vertical 
+                        valid = (j===this.currentPos[1]);
+                        break;
+                    case 2: // Upper right
+                        valid = ((BH-1-i-j) === (BH-1-this.currentPos[0]-this.currentPos[1]));
+                        break;
+                    case 3: // Upper left
+                        valid = ((i-j) === (this.currentPos[0]-this.currentPos[1]));
+                        break;
+                    default:
+                        valid = true;
+                        break;
+                }
+                if(valid && this.getPiece([i, j]) === ' '){
+                    validmoves.push(posToIdx([i,j]));
                 }
             }
         }
-        return validmoves.map(pos => posToIdx(pos));
+        if(validmoves.length > 0) {
+            return validmoves;
+        }
+        for (let i = 0; i < BH; ++i) {
+            for (let j = 0; j < BW; ++j) {
+                if (this.getPiece([i, j]) === ' ') {
+                    validmoves.push(posToIdx([i, j]));
+                }
+            }
+        }
+        return validmoves;
     }
 
     getPiece(pos) {
@@ -199,30 +170,34 @@ class Board {
         let r = pos[0], c = pos[1];
         this.setPiece([r,c], piece);
         this.currentDir = this.vectorBoard[r][c];
-        this.currentPos = [r,c];
+        this.currentPos = pos;
 
         // Insert process
-        let pos_dirs = [[1, 0], [0, 1], [1, 1], [1, -1]];
-        for(let dir of pos_dirs) {
+        let posDirs = [[1, 0], [0, 1], [1, 1], [1, -1]];
+        for(let dir of posDirs) {
             let p1 = [r+dir[0], c+dir[1]];
             let p2 = [r-dir[0], c-dir[1]];
             while(checkValidPos(p1) && this.getPiece(p1) === piece) {
                 p1 = [p1[0]+dir[0], p1[1]+dir[1]];
             }
-            console.log("p1 "+p1);
             if(!checkValidPos(p1) || this.getPiece(p1) === ' ') {
                 continue;
             }
             while(checkValidPos(p2) && this.getPiece(p2) === piece) {
                 p2 = [p2[0]-dir[0], p2[1]-dir[1]];
             }
-            console.log("p2 "+p2);
             if(!checkValidPos(p2) || this.getPiece(p2) === ' ') {
                 continue;
             }
             this.setPiece(p1, piece);
             this.setPiece(p2, piece);
         }
+        this.pieceHistory.push(this.pieceBoard);
+    }
+
+    undo() {
+        
+
     }
 
 }
@@ -233,8 +208,24 @@ class AI {
         this.depth = depth;
     }
 
-    search(board, piece) {
+    randomSearch(board, piece) {
         let validindices = board.getValidMoves();
+        return validindices[getRandomInt(validindices.length)];
+    }
+
+    dfsSearch(board, piece) {
+        const queue = [];
+        queue.push(board);
+        while (queue.length > 0) {
+            const b = queue.shift();
+            if (b.judge() === 'piece') {
+                break;
+            }
+            let validindices = board.getValidMoves();
+            for(const index of validindices) {
+
+            }
+        }
         return validindices[getRandomInt(validindices.length)];
     }
 }
@@ -244,15 +235,13 @@ let gameBoard = new Board();
 let gameAI = new AI(1);
 const divContainer = document.getElementsByClassName("game--container")[0];
 
-for (let i = 0; i < BH; i++) {
-    for (let j = 0; j < BW; j++) {
-        const div = document.createElement("canvas");
-        div.setAttribute('data-cell-index', i * BW + j);
-        div.setAttribute('width', 100);
-        div.setAttribute('height', 100);
-        div.classList.add('cell');
-        divContainer.appendChild(div);
-    }
+for (let index = 0; index < BW*BH; ++index) {
+    const canvas = document.createElement("canvas");
+    canvas.setAttribute('data-cell-index', index);
+    canvas.setAttribute('width', 99);
+    canvas.setAttribute('height', 100);
+    canvas.classList.add('cell');
+    divContainer.appendChild(canvas);
 }
 
 const divCells = document.getElementsByClassName('cell');
@@ -282,31 +271,32 @@ const currentPlayerTurn = () => {
 };
 
 function updateWindow() {
-    let validindices = gameBoard.getValidMoves();
     for(let idx=0;idx<BH*BW;++idx) {
-        let piece = gameBoard.getPiece(idxToPos(idx));
-        if(piece !== ' ') {
-            let context = divCells[idx].getContext("2d") ;
-            context.clearRect(0,0,divCells[idx].width, divCells[idx].height)
-            context.beginPath();
-            context.arc(50, 50, 40, 0 * Math.PI / 180, 360 * Math.PI / 180, false);
-            if (posToIdx(gameBoard.currentPos) != idx) {
-                context.lineWidth = 2;
-            } else {
-                context.lineWidth = 4;
-            }
-            if(piece === 'R') {
-                context.strokeStyle = "red";
-            } else {
-                context.strokeStyle = "black";
-            }
-            context.stroke();
-        }
         divCells[idx].style.backgroundColor = '#ffffff';
+
+        let piece = gameBoard.getPiece(idxToPos(idx));
+        if(piece === ' ') {
+            continue;
+        }
+
+        let context = divCells[idx].getContext("2d");
+        context.clearRect(0, 0, divCells[idx].width, divCells[idx].height)
+        context.beginPath();
+        // draw pieces
+        context.arc(50, 50, 40, 0 * Math.PI / 180, 360 * Math.PI / 180, false);
+        if (posToIdx(gameBoard.currentPos) != idx) {
+            context.lineWidth = 2;
+        } else {
+            context.lineWidth = 6;
+        }
+
+        context.strokeStyle = (piece === 'R')?"red":"black";
+        context.stroke();
+
+        console.log("hoge");
     }
-    for(const validindex of validindices) {
-        divCells[validindex].style.backgroundColor = '#87ceeb';
-    }
+
+    gameBoard.getValidMoves().map(index => divCells[index].style.backgroundColor = '#87ceeb');
 }
 
 function handleCellPlayed(clickedCellIndex) {
@@ -325,20 +315,29 @@ function handlePlayerChange() {
     statusDisplay.innerHTML = currentPlayerTurn();
 }
 
+function handleEnd() {
+    document.querySelectorAll('.cell').forEach(cell => {
+        cell.style.backgroundColor = '#ffffff';
+    });
+    gameActive = false;
+}
+
+// return true if the game is over
 function handleJudge() {
     let judgeResult = gameBoard.judge();
     let roundWon = judgeResult !== ' ';
 
     if (roundWon) {
         statusDisplay.innerHTML = winningMessage();
-        gameActive = false;
+        handleEnd();
         return true;
     }
 
-    let roundDraw = false;
+    // draw if there is no valid moves
+    let roundDraw = (gameBoard.getValidMoves().length == 0);
     if (roundDraw) {
         statusDisplay.innerHTML = drawMessage();
-        gameActive = false;
+        handleEnd();
         return true;
     }
 
@@ -347,13 +346,15 @@ function handleJudge() {
 }
 
 async function handleAI() {
-    let index = gameAI.search(gameBoard, currentPlayer);
+    let index = gameAI.randomSearch(gameBoard, currentPlayer);
     const _sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
     await _sleep(1000);
 
     gameBoard.step(idxToPos(index), currentPlayer);
     updateWindow();
-    handleJudge();
+    if(handleJudge()) {
+        return;
+    }
 }
 
 function clickCell(clickedCellEvent) {
@@ -384,6 +385,8 @@ function startGame() {
             let index = posToIdx([i,j]);
             let dir = gameBoard.vectorBoard[i][j];
             divCells[index].setAttribute('dir', dir);
+
+            // draw vector on piece
             let context = divCells[index].getContext("2d") ;
             context.beginPath();
             context.clearRect(0, 0, divCells[index].width, divCells[index].height);
@@ -405,7 +408,7 @@ function startGame() {
     currentPlayer = "R";
     updateWindow();
 
-    if(document.form.turn[1].checked) {
+    if(document.form_turn.turn[1].checked) {
         userPiece = 'W';
         aiPiece = 'R';
         handleAI();
@@ -416,5 +419,14 @@ function startGame() {
     statusDisplay.innerHTML = currentPlayerTurn();
 }
 
+function handleUndo() {
+    gameBoard.undo();
+    if(currentPlayer === userPiece) {
+        gameBoard.undo();
+    }
+    updateWindow();
+}
+
 document.querySelectorAll('.cell').forEach(cell => cell.addEventListener('click', clickCell));
 document.querySelector('.game--start').addEventListener('click', startGame);
+document.querySelector('.game--undo').addEventListener('click', undoStep);

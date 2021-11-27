@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Insert</title>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -14,10 +13,11 @@
         </div>
         <h2 class="game--status"></h2>
         <button class="game--start">Start Game</button>
-        <form name="form">
-            <input type="radio" name="turn" value="R" checked="checked"> 先攻
-            <input type="radio" name="turn" value="W"> 後攻
+        <form name="form_turn">
+            <input type="radio" class="turn" name="turn" value="R" checked="checked"> 先攻
+            <input type="radio" class="turn" name="turn" value="W"> 後攻
         </form>
+        <button class="game--undo">Undo</button>
         </section>
         <script src="main.js"></script>
         </body>
