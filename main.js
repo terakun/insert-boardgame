@@ -32,9 +32,9 @@ class Board {
             for (let j = 0; j < BW; ++j) {
                 this.pieceBoard[i][j] = ' ';
                 if(!this.debug) {
-                    this.vectorBoard[i][j] = dirs[getRandomInt(dirs.length)];
+                    this.vectorBoard[i][j] = getRandomInt(dirs.length);
                 } else {
-                    this.vectorBoard[i][j] = '*';
+                    this.vectorBoard[i][j] = -1;
                 }
             }
         }
@@ -121,7 +121,7 @@ class Board {
     getValidMoves() {
         let validmoves = [];
         switch(this.currentDir){
-            case 'H': {
+            case 0: {
                 let i = this.currentPos[0];
                 for (let j = 0; j < BW; ++j) {
                     if (this.pieceBoard[i][j] === ' ') {
@@ -130,7 +130,7 @@ class Board {
                 }
                 break;
             }
-            case 'V': {
+            case 1: {
                 let j = this.currentPos[1];
                 for (let i = 0; i < BH; ++i) {
                     if (this.pieceBoard[i][j] === ' ') {
@@ -139,7 +139,7 @@ class Board {
                 }
                 break;
             }
-            case 'UR': {
+            case 2: {
                 let i = this.currentPos[0], j = this.currentPos[1];
                 let si = 0, sj = 0;
                 if (BH-1-i < j) {
@@ -155,7 +155,7 @@ class Board {
                 }
                 break;
             }
-            case 'UL': {
+            case 3: {
                 let i = this.currentPos[0], j = this.currentPos[1];
                 let si = 0, sj = 0;
                 if (i < j) {
@@ -246,8 +246,10 @@ const divContainer = document.getElementsByClassName("game--container")[0];
 
 for (let i = 0; i < BH; i++) {
     for (let j = 0; j < BW; j++) {
-        const div = document.createElement("div");
+        const div = document.createElement("canvas");
         div.setAttribute('data-cell-index', i * BW + j);
+        div.setAttribute('width', 100);
+        div.setAttribute('height', 100);
         div.classList.add('cell');
         divContainer.appendChild(div);
     }
@@ -284,12 +286,26 @@ function updateWindow() {
     for(let idx=0;idx<BH*BW;++idx) {
         let piece = gameBoard.getPiece(idxToPos(idx));
         if(piece !== ' ') {
-            divCells[idx].innerHTML = piece;
+            let context = divCells[idx].getContext("2d") ;
+            context.clearRect(0,0,divCells[idx].width, divCells[idx].height)
+            context.beginPath();
+            context.arc(50, 50, 40, 0 * Math.PI / 180, 360 * Math.PI / 180, false);
+            if (posToIdx(gameBoard.currentPos) != idx) {
+                context.lineWidth = 2;
+            } else {
+                context.lineWidth = 4;
+            }
+            if(piece === 'R') {
+                context.strokeStyle = "red";
+            } else {
+                context.strokeStyle = "black";
+            }
+            context.stroke();
         }
-        divCells[idx].style.backgroundColor = 'white';
+        divCells[idx].style.backgroundColor = '#ffffff';
     }
     for(const validindex of validindices) {
-        divCells[validindex].style.backgroundColor = 'red';
+        divCells[validindex].style.backgroundColor = '#87ceeb';
     }
 }
 
@@ -366,7 +382,22 @@ function startGame() {
     for (let i = 0; i < BH; i++) {
         for (let j = 0; j < BW; j++) {
             let index = posToIdx([i,j]);
-            divCells[index].setAttribute('dir', gameBoard.vectorBoard[i][j]);
+            let dir = gameBoard.vectorBoard[i][j];
+            divCells[index].setAttribute('dir', dir);
+            let context = divCells[index].getContext("2d") ;
+            context.beginPath();
+            context.clearRect(0, 0, divCells[index].width, divCells[index].height);
+            let strokes = [
+                [25,50,75,50],
+                [50,25,50,75],
+                [25,75,75,25],
+                [25,25,75,75],
+            ];
+            context.moveTo(strokes[dir][0], strokes[dir][1]);
+            context.lineTo(strokes[dir][2], strokes[dir][3]);
+            context.strokeStyle = "black";
+            context.lineWidth = 2;
+            context.stroke();
             divCells[index].innerHTML = gameBoard.vectorBoard[i][j];
         }
     }
