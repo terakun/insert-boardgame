@@ -41,7 +41,6 @@ class Board {
             dirArray[i+dirArray.length/2] = getRandomInt(2)+2;
         }
         shuffleArray(dirArray);
-        console.log(dirArray);
 
         for (let i = 0; i < BH; ++i) {
             for (let j = 0; j < BW; ++j) {

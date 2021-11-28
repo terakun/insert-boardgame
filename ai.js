@@ -1,8 +1,8 @@
 importScripts('board.js');
 
 class AI {
-    constructor() {
-        this.plyDepth = 0;
+    constructor(plyDepth) {
+        this.plyDepth = plyDepth;
         this.piece = ' ';
     }
 
@@ -12,7 +12,6 @@ class AI {
     }
 
     search(board, piece) {
-        this.plyDepth = 15;
         console.log('alphabeta'+this.plyDepth);
         return this.alphabetaSearch(board, piece);
     }
@@ -59,8 +58,25 @@ class AI {
 
     alphabetaSearch(board, piece) {
         this.piece = piece;
+        this.validScores = new Array(BH*BW);
+        this.validScores.fill(null, 0, BH*BW);
         let bestMove = this.alphabetaCore(board, this.plyDepth, piece, -100, 100);
         console.log("score:"+bestMove[1]);
+
+        let scoreMat = [];
+        for(let r=0;r<BH;++r) {
+            let rows = [];
+            for(let c=0;c<BW;++c){
+                if(this.validScores[r*BW+c] !== null) {
+                    let numStr = this.validScores[r*BW+c].toString();
+                    rows.push(' '.repeat(4-numStr.length)+numStr);
+                } else {
+                    rows.push(' '.repeat(4));
+                }
+            }
+            scoreMat.push(rows.join(','));
+        }
+        console.log(scoreMat.join('\n'));
         return bestMove[0];
     }
 
@@ -84,6 +100,9 @@ class AI {
             let res = this.alphabetaCore(board, plyDepth - 1, getOpponent(piece), -highScore, -lowScore);
             board.undo();
             let score = res[1];
+            if(plyDepth === this.plyDepth) {
+                this.validScores[index] = -score;
+            }
 
             if (bestMove.length === 0||-score > bestMove[1]) {
                 lowScore = -score;
@@ -98,10 +117,11 @@ class AI {
 }
 
 onmessage = function(e) {
-    let gameAI = new AI();
     let boarddict = e.data[0];
     let board = Board.create(boarddict.pieceBoard, boarddict.vectorBoard, boarddict.debug, boarddict.currentDir, boarddict.currentPos);
     let piece = e.data[1];
+    let plyDepth = e.data[2];
+    let gameAI = new AI(plyDepth);
     let index = gameAI.search(board, piece);
     postMessage(index);
 }

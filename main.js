@@ -1,7 +1,9 @@
 let gameBoard = new Board();
+let plyDepth = 5;
 const worker = new Worker('./ai.js');
 let isWorking = false;
 const divContainer = document.getElementsByClassName("game--container")[0];
+const depthCounter = document.getElementById('depthcounter');
 
 for (let index = 0; index < BW * BH; ++index) {
     const canvas = document.createElement("canvas");
@@ -95,6 +97,7 @@ function handleEnd() {
     });
     gameActive = false;
     // undoButton.disabled = true;
+    depthCounter.disabled = false;
 }
 
 // return true if the game is over
@@ -164,7 +167,7 @@ function clickCell(clickedCellEvent) {
     if (handleJudge()) {
         return;
     }
-    worker.postMessage([gameBoard, currentPlayer]);
+    worker.postMessage([gameBoard, currentPlayer, plyDepth]);
     isWorking = true;
 }
 
@@ -189,8 +192,18 @@ function drawVector(r, c) {
 function startGame() {
     gameActive = true;
     undoButton.disabled = false;
+
     document.querySelectorAll('.cell').forEach(cell => cell.innerHTML = "");
     gameBoard.initBoard();
+
+    plyDepth = parseInt(depthCounter.value);
+    if(isNaN(plyDepth) || plyDepth === 0) {
+        plyDepth = 5;
+    } else if(plyDepth > 15) {
+        plyDepth = 15;
+    }
+    depthCounter.value =  plyDepth;
+    depthCounter.disabled = true;
 
     for (let i = 0; i < BH; i++) {
         for (let j = 0; j < BW; j++) {
@@ -214,7 +227,7 @@ function startGame() {
     if (document.form_turn.turn[1].checked) {
         userPiece = 'B';
         aiPiece = 'R';
-        worker.postMessage([gameBoard, currentPlayer]);
+        worker.postMessage([gameBoard, currentPlayer, plyDepth]);
         isWorking = true;
     } else {
         userPiece = 'R';
@@ -225,8 +238,12 @@ function startGame() {
 }
 
 function undoGame() {
+    if(gameBoard.getNumPiece() === 0) {
+        return;
+    }
     if(!gameActive) {
         gameActive = true;
+        depthCounter.disabled = true;
         currentPlayer = getOpponent(currentPlayer);
     }
     if(currentPlayer === userPiece) {
