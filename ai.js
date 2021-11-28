@@ -2,7 +2,7 @@ importScripts('board.js');
 
 class AI {
     constructor() {
-        this.plyDepth = 7;
+        this.plyDepth = 0;
         this.piece = ' ';
     }
 
@@ -12,21 +12,9 @@ class AI {
     }
 
     search(board, piece) {
-        let numPiece = board.getNumPiece();
-        if(numPiece < BW*BH/2) {
-            this.plyDepth = 12;
-            console.log('alphabeta'+this.plyDepth);
-            return this.alphabetaSearch(board, piece);
-        } else {
-            console.log('perfect play');
-            let bestMove = this.perfectPlayCore(board, piece);
-            if(!bestMove[1]) {
-                console.log('無理');
-                return this.randomSearch(board, piece);
-            } else {
-                return bestMove[0];
-            }
-        }
+        this.plyDepth = 15;
+        console.log('alphabeta'+this.plyDepth);
+        return this.alphabetaSearch(board, piece);
     }
 
     perfectPlayCore(board, piece) {
@@ -38,7 +26,7 @@ class AI {
             } else if (judgeResult === getOpponent(this.piece)) {
                 return [-1, false];
             } else {
-                return [-1, false];
+                return [-1, true];
             }
         }
 
@@ -52,8 +40,14 @@ class AI {
 
             if(piece === this.piece) {
                 totalJudge = totalJudge || judge;
+                if(judge) {
+                    return [index, true];
+                }
             } else {
                 totalJudge = totalJudge && judge;
+                if(!judge) {
+                    return [-1, false];
+                }
             }
             if (judge) {
                 bestMove[0] = index;
@@ -77,9 +71,9 @@ class AI {
         if (plyDepth === 0 || validIndices.length === 0) {
             let judgeResult = board.judge();
             if (judgeResult === piece) {
-                return [-1, 1];
+                return [-1, 1+BH*BW-board.getNumPiece()];
             } else if (judgeResult === getOpponent(piece)) {
-                return [-1, -1];
+                return [-1, -1-BH*BW+board.getNumPiece()];
             } else {
                 return [-1, 0];
             }

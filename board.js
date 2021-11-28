@@ -82,6 +82,7 @@ class Board {
                 return true;
             }
         }
+        return false;
     }
     judge() {
         for (let r = 0; r < BH; ++r) {
@@ -98,7 +99,7 @@ class Board {
     }
 
     getValidMoves() {
-        if(this.judge() !== ' ') {
+        if(this.getNumPiece() === BH*BW || this.judge() !== ' ') {
             return [];
         }
 
