@@ -35,6 +35,9 @@ class Board {
     initBoard() {
         this.currentDir = ' ';
         this.currentPos = [-1, -1];
+
+        this.history.splice(0, this.history.length);
+
         let dirArray = new Array(BH*BW);
         for (let i = 0; i < dirArray.length/2; ++i) {
             dirArray[i] = getRandomInt(2);

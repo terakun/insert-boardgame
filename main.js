@@ -8,7 +8,7 @@ const depthCounter = document.getElementById('depthcounter');
 for (let index = 0; index < BW * BH; ++index) {
     const canvas = document.createElement("canvas");
     canvas.setAttribute('data-cell-index', index);
-    canvas.setAttribute('width', 99);
+    canvas.setAttribute('width', 100);
     canvas.setAttribute('height', 100);
     canvas.classList.add('cell');
     divContainer.appendChild(canvas);
