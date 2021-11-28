@@ -6,6 +6,13 @@ function getRandomInt(max) {
     return Math.floor(Math.random() * max);
 }
 
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        let j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+}
+
 function getOpponent(piece) {
     return (piece === 'R') ? 'B' : 'R';
 }
@@ -28,11 +35,19 @@ class Board {
     initBoard() {
         this.currentDir = ' ';
         this.currentPos = [-1, -1];
+        let dirArray = new Array(BH*BW);
+        for (let i = 0; i < dirArray.length/2; ++i) {
+            dirArray[i] = getRandomInt(2);
+            dirArray[i+dirArray.length/2] = getRandomInt(2)+2;
+        }
+        shuffleArray(dirArray);
+        console.log(dirArray);
+
         for (let i = 0; i < BH; ++i) {
             for (let j = 0; j < BW; ++j) {
                 this.pieceBoard[i][j] = ' ';
                 if (!this.debug) {
-                    this.vectorBoard[i][j] = getRandomInt(dirs.length);
+                    this.vectorBoard[i][j] = dirArray[posToIdx([i, j])];
                 } else {
                     this.vectorBoard[i][j] = -1;
                 }

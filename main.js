@@ -1,5 +1,6 @@
 let gameBoard = new Board();
 const worker = new Worker('./ai.js');
+let isWorking = false;
 const divContainer = document.getElementsByClassName("game--container")[0];
 
 for (let index = 0; index < BW * BH; ++index) {
@@ -93,7 +94,7 @@ function handleEnd() {
         cell.style.backgroundColor = '#ffffff';
     });
     gameActive = false;
-    undoButton.disabled = true;
+    // undoButton.disabled = true;
 }
 
 // return true if the game is over
@@ -143,6 +144,7 @@ worker.onmessage = function(e) {
     console.log('AI');
     debugBoardInfo();
 
+    isWorking = false;
     if (handleJudge()) {
         return;
     }
@@ -163,6 +165,7 @@ function clickCell(clickedCellEvent) {
         return;
     }
     worker.postMessage([gameBoard, currentPlayer]);
+    isWorking = true;
 }
 
 // draw vector on piece
@@ -212,6 +215,7 @@ function startGame() {
         userPiece = 'B';
         aiPiece = 'R';
         worker.postMessage([gameBoard, currentPlayer]);
+        isWorking = true;
     } else {
         userPiece = 'R';
         aiPiece = 'B';
@@ -221,11 +225,17 @@ function startGame() {
 }
 
 function undoGame() {
+    if(!gameActive) {
+        gameActive = true;
+        currentPlayer = getOpponent(currentPlayer);
+    }
     if(currentPlayer === userPiece) {
         gameBoard.undo();
         gameBoard.undo();
     } else {
-        worker.terminate();
+        if(isWorking){
+            worker.terminate();
+        }
         gameBoard.undo();
         currentPlayer = userPiece;
     }
