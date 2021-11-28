@@ -15,6 +15,8 @@ const divCells = document.getElementsByClassName('cell');
 const statusDisplay = document.querySelector('.game--status');
 
 let gameActive = false;
+const undoButton = document.querySelector('.game--undo');
+undoButton.disabled = true;
 let currentPlayer = "R";
 let userPiece = ' ';
 let aiPiece = ' ';
@@ -41,6 +43,7 @@ function updateWindow() {
         divCells[index].style.backgroundColor = '#ffffff';
 
         let context = divCells[index].getContext("2d");
+        context.beginPath();
         context.clearRect(0, 0, divCells[index].width, divCells[index].height)
 
         if (!gameBoard.debug) {
@@ -74,7 +77,7 @@ function handleUser(clickedCellIndex) {
     updateWindow();
 
     console.log('User');
-    console.log(boardToString());
+    debugBoardInfo();
 
     return true;
 }
@@ -90,6 +93,7 @@ function handleEnd() {
         cell.style.backgroundColor = '#ffffff';
     });
     gameActive = false;
+    undoButton.disabled = true;
 }
 
 // return true if the game is over
@@ -117,6 +121,11 @@ function handleJudge() {
     return false;
 }
 
+function debugBoardInfo() {
+    console.log(boardToString());
+    console.log(gameBoard.getNumPiece());
+}
+
 function boardToString() {
     let rowlist = []
     for(let r=0;r<BH;++r) {
@@ -132,7 +141,7 @@ worker.onmessage = function(e) {
 
     updateWindow();
     console.log('AI');
-    console.log(boardToString());
+    debugBoardInfo();
 
     if (handleJudge()) {
         return;
@@ -176,6 +185,7 @@ function drawVector(r, c) {
 
 function startGame() {
     gameActive = true;
+    undoButton.disabled = false;
     document.querySelectorAll('.cell').forEach(cell => cell.innerHTML = "");
     gameBoard.initBoard();
 
@@ -210,5 +220,21 @@ function startGame() {
     statusDisplay.style.color = (currentPlayer === 'R')?'red':'black';
 }
 
+function undoGame() {
+    if(currentPlayer === userPiece) {
+        gameBoard.undo();
+        gameBoard.undo();
+    } else {
+        worker.terminate();
+        gameBoard.undo();
+        currentPlayer = userPiece;
+    }
+
+    updateWindow();
+    statusDisplay.innerHTML = currentPlayerTurn();
+    statusDisplay.style.color = (currentPlayer === 'R')?'red':'black';
+}
+
 document.querySelectorAll('.cell').forEach(cell => cell.addEventListener('click', clickCell));
 document.querySelector('.game--start').addEventListener('click', startGame);
+document.querySelector('.game--undo').addEventListener('click', undoGame);

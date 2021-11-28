@@ -58,6 +58,8 @@ class Board {
             this.vectorBoard[i] = new Array(BW);
         }
         this.debug = debug;
+        this.history = []; 
+        // list of [index, piece, reverseIndices]
         this.initBoard();
     }
 
@@ -166,6 +168,7 @@ class Board {
         this.currentPos = pos;
 
         // Insert process
+        let reverseIndices = [];
         let posDirs = [[1, 0], [0, 1], [1, 1], [1, -1]];
         for (let dir of posDirs) {
             let p1 = [r + dir[0], c + dir[1]];
@@ -184,6 +187,38 @@ class Board {
             }
             this.setPiece(p1, piece);
             this.setPiece(p2, piece);
+            reverseIndices.push(posToIdx(p1));
+            reverseIndices.push(posToIdx(p2));
         }
+        this.history.push([posToIdx(pos), piece, reverseIndices]);
+    }
+
+    undo() {
+        let h = this.history.pop();
+        let index = h[0];
+        let piece = h[1];
+        let reverseIndices = h[2];
+
+        this.setPiece(idxToPos(index), ' ');
+        for(const reverseIndex of reverseIndices) {
+            this.setPiece(idxToPos(reverseIndex), getOpponent(piece));
+        }
+        if (this.history.length > 0) {
+            this.currentPos = idxToPos(this.history[this.history.length - 1][0]);
+            this.currentDir = this.vectorBoard[this.currentPos[0]][this.currentPos[1]];
+        } else {
+            this.currentPos = [-1, -1];
+            this.currentDir = ' ';
+        }
+    }
+
+    getNumPiece() {
+        let numPiece = 0;
+        for(let index = 0;index < BW*BH;++index){
+            if(this.getPiece(idxToPos(index)) !== ' ') {
+                numPiece++;
+            }
+        }
+        return numPiece;
     }
 }
